@@ -3,6 +3,7 @@ package cat.itacademy.s04.t02.n02.fruit.service;
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderRequestDTO;
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderResponseDTO;
 import cat.itacademy.s04.t02.n02.fruit.exception.DuplicateResourceException;
+import cat.itacademy.s04.t02.n02.fruit.exception.ResourceNotFoundException;
 import cat.itacademy.s04.t02.n02.fruit.mapper.ProviderMapper;
 import cat.itacademy.s04.t02.n02.fruit.model.Provider;
 import cat.itacademy.s04.t02.n02.fruit.repository.ProviderRepository;
@@ -16,6 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProviderServiceImpl implements ProviderService {
     private static final String DUPLICATED_PROVIDER_MESSAGE = "Provider with name '%s' already exists";
+    private static final String PROVIDER_NOT_FOUND_MESSAGE = "Provider with id %s not found";
 
     private final ProviderRepository providerRepository;
     private final ProviderMapper providerMapper;
@@ -42,5 +44,27 @@ public class ProviderServiceImpl implements ProviderService {
                 .toList();
     }
 
-    
+    @Override
+    @Transactional
+    public ProviderResponseDTO updateProvider(Long id, ProviderRequestDTO request) {
+        Provider provider = providerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format(PROVIDER_NOT_FOUND_MESSAGE, id)
+                ));
+
+        if (!provider.getName().equals(request.name()) &&
+                providerRepository.existsByName(request.name())) {
+            throw new DuplicateResourceException(
+                    String.format(DUPLICATED_PROVIDER_MESSAGE, request.name())
+            );
+        }
+
+        provider.setName(request.name());
+        provider.setCountry(request.country());
+
+        Provider updatedProvider = providerRepository.save(provider);
+        return providerMapper.toResponseDTO(updatedProvider);
+    }
+
+
 }

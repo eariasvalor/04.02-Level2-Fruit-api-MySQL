@@ -3,6 +3,8 @@ package cat.itacademy.s04.t02.n02.fruit.controller;
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderRequestDTO;
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderResponseDTO;
 import cat.itacademy.s04.t02.n02.fruit.service.ProviderService;
+import cat.itacademy.s04.t02.n02.fruit.exception.ResourceNotFoundException;
+import cat.itacademy.s04.t02.n02.fruit.exception.DuplicateResourceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,8 +17,10 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProviderController.class)
@@ -98,6 +102,63 @@ class ProviderControllerTest {
                 .andExpect(jsonPath("$[1].country").value("France"));
     }
 
+    @Test
+    void updateProvider_WithValidData_Returns200Ok() throws Exception {
+                Long providerId = 1L;
+        ProviderRequestDTO request = new ProviderRequestDTO("Updated Fruits Inc", "Italy");
+        ProviderResponseDTO response = new ProviderResponseDTO(providerId, "Updated Fruits Inc", "Italy");
 
+        when(providerService.updateProvider(eq(providerId), any(ProviderRequestDTO.class)))
+                .thenReturn(response);
+
+                mockMvc.perform(put("/providers/{id}", providerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(providerId))
+                .andExpect(jsonPath("$.name").value("Updated Fruits Inc"))
+                .andExpect(jsonPath("$.country").value("Italy"));
+    }
+
+    @Test
+    void updateProvider_WithNonExistentId_Returns404NotFound() throws Exception {
+                Long providerId = 999L;
+        ProviderRequestDTO request = new ProviderRequestDTO("Fruits Inc", "Spain");
+
+        when(providerService.updateProvider(eq(providerId), any(ProviderRequestDTO.class)))
+                .thenThrow(new ResourceNotFoundException("Provider with id " + providerId + " not found"));
+
+                mockMvc.perform(put("/providers/{id}", providerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Provider with id 999 not found"));
+    }
+
+    @Test
+    void updateProvider_WithBlankName_Returns400BadRequest() throws Exception {
+                Long providerId = 1L;
+        ProviderRequestDTO request = new ProviderRequestDTO("", "Spain");
+
+                mockMvc.perform(put("/providers/{id}", providerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateProvider_WithDuplicateName_Returns409Conflict() throws Exception {
+                Long providerId = 1L;
+        ProviderRequestDTO request = new ProviderRequestDTO("Existing Provider", "Spain");
+
+        when(providerService.updateProvider(eq(providerId), any(ProviderRequestDTO.class)))
+                .thenThrow(new DuplicateResourceException("Provider with name 'Existing Provider' already exists"));
+
+                mockMvc.perform(put("/providers/{id}", providerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Provider with name 'Existing Provider' already exists"));
+    }
 
 }

@@ -8,4 +8,5 @@ import java.util.List;
 public interface ProviderService {
     ProviderResponseDTO createProvider(ProviderRequestDTO request);
     List<ProviderResponseDTO> getAllProviders();
+    ProviderResponseDTO updateProvider(Long id, ProviderRequestDTO request);
 }

@@ -26,9 +26,16 @@ public class ProviderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProviderResponseDTO>> getAllProviders(){
+    public ResponseEntity<List<ProviderResponseDTO>> getAllProviders() {
         List<ProviderResponseDTO> providers = providerService.getAllProviders();
         return ResponseEntity.ok(providers);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ProviderResponseDTO> updateProvider(
+            @PathVariable Long id,
+            @Valid @RequestBody ProviderRequestDTO request) {
+        ProviderResponseDTO response = providerService.updateProvider(id, request);
+        return ResponseEntity.ok(response);
+    }
 }
