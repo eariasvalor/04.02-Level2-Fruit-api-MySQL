@@ -3,9 +3,11 @@ package cat.itacademy.s04.t02.n02.fruit.service;
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderRequestDTO;
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderResponseDTO;
 import cat.itacademy.s04.t02.n02.fruit.exception.DuplicateResourceException;
+import cat.itacademy.s04.t02.n02.fruit.exception.ResourceConflictException;
 import cat.itacademy.s04.t02.n02.fruit.exception.ResourceNotFoundException;
 import cat.itacademy.s04.t02.n02.fruit.mapper.ProviderMapper;
 import cat.itacademy.s04.t02.n02.fruit.model.Provider;
+import cat.itacademy.s04.t02.n02.fruit.repository.FruitRepository;
 import cat.itacademy.s04.t02.n02.fruit.repository.ProviderRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class ProviderServiceTest {
@@ -32,6 +36,9 @@ class ProviderServiceTest {
 
     @InjectMocks
     private ProviderServiceImpl providerService;
+
+    @Mock
+    private FruitRepository fruitRepository;
 
     @Test
     void createProvider_WithValidData_ReturnsProviderResponse() {
@@ -159,5 +166,42 @@ class ProviderServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.country()).isEqualTo("Italy");
+    }
+
+    @Test
+    void deleteProvider_WithValidIdAndNoFruits_DeletesSuccessfully() {
+                Long providerId = 1L;
+        Provider provider = new Provider(providerId, "Fruits Inc", "Spain");
+
+        when(providerRepository.findById(providerId)).thenReturn(Optional.of(provider));
+        when(fruitRepository.existsByProviderId(providerId)).thenReturn(false);
+
+                providerService.deleteProvider(providerId);
+
+                verify(providerRepository, times(1)).delete(provider);
+    }
+
+    @Test
+    void deleteProvider_WithNonExistentId_ThrowsResourceNotFoundException() {
+                Long providerId = 999L;
+
+        when(providerRepository.findById(providerId)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> providerService.deleteProvider(providerId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Provider with id 999 not found");
+    }
+
+    @Test
+    void deleteProvider_WithAssociatedFruits_ThrowsResourceConflictException() {
+                Long providerId = 1L;
+        Provider provider = new Provider(providerId, "Fruits Inc", "Spain");
+
+        when(providerRepository.findById(providerId)).thenReturn(Optional.of(provider));
+        when(fruitRepository.existsByProviderId(providerId)).thenReturn(true);
+
+                assertThatThrownBy(() -> providerService.deleteProvider(providerId))
+                .isInstanceOf(ResourceConflictException.class)
+                .hasMessage("Cannot delete provider with id 1 because it has associated fruits");
     }
 }

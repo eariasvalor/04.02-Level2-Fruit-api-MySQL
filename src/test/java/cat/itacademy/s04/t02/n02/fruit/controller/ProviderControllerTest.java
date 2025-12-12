@@ -2,6 +2,7 @@ package cat.itacademy.s04.t02.n02.fruit.controller;
 
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderRequestDTO;
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderResponseDTO;
+import cat.itacademy.s04.t02.n02.fruit.exception.ResourceConflictException;
 import cat.itacademy.s04.t02.n02.fruit.service.ProviderService;
 import cat.itacademy.s04.t02.n02.fruit.exception.ResourceNotFoundException;
 import cat.itacademy.s04.t02.n02.fruit.exception.DuplicateResourceException;
@@ -18,9 +19,12 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProviderController.class)
@@ -159,6 +163,40 @@ class ProviderControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Provider with name 'Existing Provider' already exists"));
+    }
+
+    @Test
+    void deleteProvider_WithValidId_Returns204NoContent() throws Exception {
+                Long providerId = 1L;
+
+        doNothing().when(providerService).deleteProvider(providerId);
+
+                mockMvc.perform(delete("/providers/{id}", providerId))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteProvider_WithNonExistentId_Returns404NotFound() throws Exception {
+                Long providerId = 999L;
+
+        doThrow(new ResourceNotFoundException("Provider with id " + providerId + " not found"))
+                .when(providerService).deleteProvider(providerId);
+
+                mockMvc.perform(delete("/providers/{id}", providerId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Provider with id 999 not found"));
+    }
+
+    @Test
+    void deleteProvider_WithAssociatedFruits_Returns409Conflict() throws Exception {
+                Long providerId = 1L;
+
+        doThrow(new ResourceConflictException("Cannot delete provider with id " + providerId + " because it has associated fruits"))
+                .when(providerService).deleteProvider(providerId);
+
+                mockMvc.perform(delete("/providers/{id}", providerId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot delete provider with id 1 because it has associated fruits"));
     }
 
 }

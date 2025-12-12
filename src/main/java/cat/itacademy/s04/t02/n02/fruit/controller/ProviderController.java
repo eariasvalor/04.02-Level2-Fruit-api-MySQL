@@ -31,11 +31,23 @@ public class ProviderController {
         return ResponseEntity.ok(providers);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ProviderResponseDTO> getProviderById(@PathVariable Long id) {
+        ProviderResponseDTO response = providerService.getProviderById(id);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ProviderResponseDTO> updateProvider(
             @PathVariable Long id,
             @Valid @RequestBody ProviderRequestDTO request) {
         ProviderResponseDTO response = providerService.updateProvider(id, request);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProvider(@PathVariable Long id) {
+        providerService.deleteProvider(id);
+        return ResponseEntity.noContent().build();
     }
 }

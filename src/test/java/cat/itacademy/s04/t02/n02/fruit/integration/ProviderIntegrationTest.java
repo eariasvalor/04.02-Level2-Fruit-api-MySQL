@@ -1,6 +1,10 @@
 package cat.itacademy.s04.t02.n02.fruit.integration;
 
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderRequestDTO;
+import cat.itacademy.s04.t02.n02.fruit.model.Fruit;
+import cat.itacademy.s04.t02.n02.fruit.model.Provider;
+import cat.itacademy.s04.t02.n02.fruit.repository.FruitRepository;
+import cat.itacademy.s04.t02.n02.fruit.repository.ProviderRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -27,6 +32,12 @@ class ProviderIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private ProviderRepository providerRepository;
+
+    @Autowired
+    private FruitRepository fruitRepository;
 
     @Test
     void createProvider_EndToEnd_ReturnsCreatedProvider() throws Exception {
@@ -181,5 +192,47 @@ class ProviderIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteProvider_WithValidIdAndNoFruits_Returns204NoContent() throws Exception {
+                ProviderRequestDTO request = new ProviderRequestDTO("Fruits Inc", "Spain");
+        String createResponse = mockMvc.perform(post("/providers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long providerId = objectMapper.readTree(createResponse).get("id").asLong();
+
+                mockMvc.perform(delete("/providers/{id}", providerId))
+                .andExpect(status().isNoContent());
+
+                mockMvc.perform(get("/providers/{id}", providerId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteProvider_WithNonExistentId_Returns404NotFound() throws Exception {
+                Long nonExistentId = 999L;
+
+                mockMvc.perform(delete("/providers/{id}", nonExistentId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Provider with id 999 not found"));
+    }
+
+    @Test
+    void deleteProvider_WithAssociatedFruits_Returns409Conflict() throws Exception {
+                Provider provider = new Provider(null, "Fruits Inc", "Spain");
+        provider = providerRepository.save(provider);
+
+                Fruit fruit = new Fruit(null, "Apple", 10, provider);
+        fruitRepository.save(fruit);
+
+                mockMvc.perform(delete("/providers/{id}", provider.getId()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot delete provider with id " + provider.getId() + " because it has associated fruits"));
+
+                mockMvc.perform(get("/providers/{id}", provider.getId()))
+                .andExpect(status().isOk());
     }
 }
