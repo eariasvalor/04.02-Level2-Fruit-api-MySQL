@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ProviderServiceImpl implements ProviderService {
@@ -30,4 +32,15 @@ public class ProviderServiceImpl implements ProviderService {
         Provider savedEntity = providerRepository.save(entity);
         return providerMapper.toResponseDTO(savedEntity);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProviderResponseDTO> getAllProviders() {
+        return providerRepository.findAll()
+                .stream()
+                .map(providerMapper::toResponseDTO)
+                .toList();
+    }
+
+    
 }

@@ -11,8 +11,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -63,6 +66,38 @@ class ProviderControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void getAllProviders_ReturnsEmptyList() throws Exception {
+                when(providerService.getAllProviders()).thenReturn(List.of());
+
+                mockMvc.perform(get("/providers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getAllProviders_ReturnsListOfProviders() throws Exception {
+                List<ProviderResponseDTO> providers = List.of(
+                new ProviderResponseDTO(1L, "Fruits Inc", "Spain"),
+                new ProviderResponseDTO(2L, "Veggies Ltd", "France")
+        );
+
+        when(providerService.getAllProviders()).thenReturn(providers);
+
+                mockMvc.perform(get("/providers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("Fruits Inc"))
+                .andExpect(jsonPath("$[0].country").value("Spain"))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].name").value("Veggies Ltd"))
+                .andExpect(jsonPath("$[1].country").value("France"));
+    }
+
 
 
 }
