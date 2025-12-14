@@ -36,5 +36,9 @@ public class FruitController {
         return ResponseEntity.ok(fruits);
     }
 
-
+    @GetMapping("/{id}")
+    public ResponseEntity<FruitResponseDTO> getFruitById(@PathVariable Long id) {
+        FruitResponseDTO response = fruitService.getFruitById(id);
+        return ResponseEntity.ok(response);
+    }
 }

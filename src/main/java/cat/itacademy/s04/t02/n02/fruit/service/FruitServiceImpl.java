@@ -19,6 +19,7 @@ import java.util.List;
 public class FruitServiceImpl implements FruitService {
 
     private static final String PROVIDER_NOT_FOUND_MESSAGE = "Provider with id %d not found";
+    private static final String FRUIT_NOT_FOUND_MESSAGE = "Fruit with id %d not found";
 
     private final FruitRepository fruitRepository;
     private final ProviderRepository providerRepository;
@@ -61,5 +62,13 @@ public class FruitServiceImpl implements FruitService {
                 .toList();
     }
 
-
+    @Override
+    @Transactional(readOnly = true)
+    public FruitResponseDTO getFruitById(Long id) {
+        Fruit fruit = fruitRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format(FRUIT_NOT_FOUND_MESSAGE, id)
+                ));
+        return fruitMapper.toResponseDTO(fruit);
+    }
 }

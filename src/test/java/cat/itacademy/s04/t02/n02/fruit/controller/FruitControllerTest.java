@@ -175,4 +175,33 @@ class FruitControllerTest {
                 .andExpect(jsonPath("$[1].id").value(2))
                 .andExpect(jsonPath("$[1].name").value("Banana"));
     }
+
+    @Test
+    void getFruitById_WithExistingId_Returns200Ok() throws Exception {
+                Long fruitId = 1L;
+        ProviderResponseDTO provider = new ProviderResponseDTO(1L, "Fruits Inc", "Spain");
+        FruitResponseDTO response = new FruitResponseDTO(fruitId, "Apple", 10, provider);
+
+        when(fruitService.getFruitById(fruitId)).thenReturn(response);
+
+                mockMvc.perform(get("/fruits/{id}", fruitId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(fruitId))
+                .andExpect(jsonPath("$.name").value("Apple"))
+                .andExpect(jsonPath("$.weightInKilos").value(10))
+                .andExpect(jsonPath("$.provider.id").value(1))
+                .andExpect(jsonPath("$.provider.name").value("Fruits Inc"));
+    }
+
+    @Test
+    void getFruitById_WithNonExistentId_Returns404NotFound() throws Exception {
+                Long fruitId = 999L;
+
+        when(fruitService.getFruitById(fruitId))
+                .thenThrow(new ResourceNotFoundException("Fruit with id 999 not found"));
+
+                mockMvc.perform(get("/fruits/{id}", fruitId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Fruit with id 999 not found"));
+    }
 }

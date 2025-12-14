@@ -222,4 +222,41 @@ class FruitIntegrationTest {
                 .andExpect(jsonPath("$[2].provider.name").value("Veggies Ltd"));
     }
 
+    @Test
+    void getFruitById_WithExistingId_ReturnsFruit() throws Exception {
+                ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
+        String providerResponse = mockMvc.perform(post("/providers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(providerRequest)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long providerId = objectMapper.readTree(providerResponse).get("id").asLong();
+
+        FruitRequestDTO fruitRequest = new FruitRequestDTO("Apple", 10, providerId);
+        String fruitResponse = mockMvc.perform(post("/fruits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(fruitRequest)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long fruitId = objectMapper.readTree(fruitResponse).get("id").asLong();
+
+                mockMvc.perform(get("/fruits/{id}", fruitId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(fruitId))
+                .andExpect(jsonPath("$.name").value("Apple"))
+                .andExpect(jsonPath("$.weightInKilos").value(10))
+                .andExpect(jsonPath("$.provider.id").value(providerId))
+                .andExpect(jsonPath("$.provider.name").value("Fruits Inc"))
+                .andExpect(jsonPath("$.provider.country").value("Spain"));
+    }
+
+    @Test
+    void getFruitById_WithNonExistentId_Returns404NotFound() throws Exception {
+                Long nonExistentId = 999L;
+
+                mockMvc.perform(get("/fruits/{id}", nonExistentId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Fruit with id 999 not found"));
+    }
+
 }

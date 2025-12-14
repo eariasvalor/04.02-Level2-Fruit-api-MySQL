@@ -9,4 +9,5 @@ public interface FruitService {
     FruitResponseDTO createFruit(FruitRequestDTO request);
     List<FruitResponseDTO> getFruitsByProviderId(Long providerId);
     List<FruitResponseDTO> getAllFruits();
+    FruitResponseDTO getFruitById(Long id);
 }

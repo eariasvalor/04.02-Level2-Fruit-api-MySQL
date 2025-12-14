@@ -152,4 +152,36 @@ class FruitServiceTest {
         assertThat(result.get(0).name()).isEqualTo("Apple");
         assertThat(result.get(1).name()).isEqualTo("Banana");
     }
+
+    @Test
+    void getFruitById_WithExistingId_ReturnsFruit() {
+                Long fruitId = 1L;
+        Provider provider = new Provider(1L, "Fruits Inc", "Spain");
+        Fruit fruit = new Fruit(fruitId, "Apple", 10, provider);
+
+        ProviderResponseDTO providerResponse = new ProviderResponseDTO(1L, "Fruits Inc", "Spain");
+        FruitResponseDTO expectedResponse = new FruitResponseDTO(fruitId, "Apple", 10, providerResponse);
+
+        when(fruitRepository.findById(fruitId)).thenReturn(Optional.of(fruit));
+        when(fruitMapper.toResponseDTO(fruit)).thenReturn(expectedResponse);
+
+                FruitResponseDTO result = fruitService.getFruitById(fruitId);
+
+                assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo(fruitId);
+        assertThat(result.name()).isEqualTo("Apple");
+        assertThat(result.weightInKilos()).isEqualTo(10);
+        assertThat(result.provider().name()).isEqualTo("Fruits Inc");
+    }
+
+    @Test
+    void getFruitById_WithNonExistentId_ThrowsResourceNotFoundException() {
+                Long fruitId = 999L;
+
+        when(fruitRepository.findById(fruitId)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> fruitService.getFruitById(fruitId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Fruit with id 999 not found");
+    }
 }
