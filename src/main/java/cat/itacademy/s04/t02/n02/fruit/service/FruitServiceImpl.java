@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class FruitServiceImpl implements FruitService {
@@ -33,5 +35,20 @@ public class FruitServiceImpl implements FruitService {
         Fruit fruit = fruitMapper.toEntity(request, provider);
         Fruit savedFruit = fruitRepository.save(fruit);
         return fruitMapper.toResponseDTO(savedFruit);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FruitResponseDTO> getFruitsByProviderId(Long providerId) {
+        if (!providerRepository.existsById(providerId)) {
+            throw new ResourceNotFoundException(
+                    String.format(PROVIDER_NOT_FOUND_MESSAGE, providerId)
+            );
+        }
+
+        return fruitRepository.findByProviderId(providerId)
+                .stream()
+                .map(fruitMapper::toResponseDTO)
+                .toList();
     }
 }

@@ -13,9 +13,12 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(FruitController.class)
@@ -32,14 +35,14 @@ class FruitControllerTest {
 
     @Test
     void createFruit_WithValidData_Returns201Created() throws Exception {
-                FruitRequestDTO request = new FruitRequestDTO("Apple", 10, 1L);
+        FruitRequestDTO request = new FruitRequestDTO("Apple", 10, 1L);
         ProviderResponseDTO provider = new ProviderResponseDTO(1L, "Fruits Inc", "Spain");
         FruitResponseDTO response = new FruitResponseDTO(1L, "Apple", 10, provider);
 
         when(fruitService.createFruit(any(FruitRequestDTO.class)))
                 .thenReturn(response);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -52,12 +55,12 @@ class FruitControllerTest {
 
     @Test
     void createFruit_WithNonExistentProvider_Returns404NotFound() throws Exception {
-                FruitRequestDTO request = new FruitRequestDTO("Apple", 10, 999L);
+        FruitRequestDTO request = new FruitRequestDTO("Apple", 10, 999L);
 
         when(fruitService.createFruit(any(FruitRequestDTO.class)))
                 .thenThrow(new ResourceNotFoundException("Provider with id 999 not found"));
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -66,9 +69,9 @@ class FruitControllerTest {
 
     @Test
     void createFruit_WithBlankName_Returns400BadRequest() throws Exception {
-                FruitRequestDTO request = new FruitRequestDTO("", 10, 1L);
+        FruitRequestDTO request = new FruitRequestDTO("", 10, 1L);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -76,9 +79,9 @@ class FruitControllerTest {
 
     @Test
     void createFruit_WithNegativeWeight_Returns400BadRequest() throws Exception {
-                FruitRequestDTO request = new FruitRequestDTO("Apple", -5, 1L);
+        FruitRequestDTO request = new FruitRequestDTO("Apple", -5, 1L);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -86,11 +89,58 @@ class FruitControllerTest {
 
     @Test
     void createFruit_WithNullProviderId_Returns400BadRequest() throws Exception {
-                FruitRequestDTO request = new FruitRequestDTO("Apple", 10, null);
+        FruitRequestDTO request = new FruitRequestDTO("Apple", 10, null);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getFruitsByProviderId_WithExistingProvider_ReturnsListOfFruits() throws Exception {
+        Long providerId = 1L;
+        ProviderResponseDTO provider = new ProviderResponseDTO(1L, "Fruits Inc", "Spain");
+        List<FruitResponseDTO> fruits = List.of(
+                new FruitResponseDTO(1L, "Apple", 10, provider),
+                new FruitResponseDTO(2L, "Banana", 5, provider)
+        );
+
+        when(fruitService.getFruitsByProviderId(providerId)).thenReturn(fruits);
+
+        mockMvc.perform(get("/fruits")
+                        .param("providerId", providerId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("Apple"))
+                .andExpect(jsonPath("$[1].name").value("Banana"))
+                .andExpect(jsonPath("$[0].provider.id").value(providerId));
+    }
+
+    @Test
+    void getFruitsByProviderId_WithEmptyResult_ReturnsEmptyArray() throws Exception {
+        Long providerId = 1L;
+
+        when(fruitService.getFruitsByProviderId(providerId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/fruits")
+                        .param("providerId", providerId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getFruitsByProviderId_WithNonExistentProvider_Returns404NotFound() throws Exception {
+        Long providerId = 999L;
+
+        when(fruitService.getFruitsByProviderId(providerId))
+                .thenThrow(new ResourceNotFoundException("Provider with id 999 not found"));
+
+        mockMvc.perform(get("/fruits")
+                        .param("providerId", providerId.toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Provider with id 999 not found"));
     }
 }

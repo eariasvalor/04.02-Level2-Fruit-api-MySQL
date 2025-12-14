@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,5 +72,53 @@ class FruitServiceTest {
         assertThatThrownBy(() -> fruitService.createFruit(request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Provider with id 999 not found");
+    }
+
+    @Test
+    void getFruitsByProviderId_WithExistingProvider_ReturnsListOfFruits() {
+        Long providerId = 1L;
+        Provider provider = new Provider(providerId, "Fruits Inc", "Spain");
+
+        Fruit fruit1 = new Fruit(1L, "Apple", 10, provider);
+        Fruit fruit2 = new Fruit(2L, "Banana", 5, provider);
+        List<Fruit> fruits = List.of(fruit1, fruit2);
+
+        ProviderResponseDTO providerResponse = new ProviderResponseDTO(providerId, "Fruits Inc", "Spain");
+        FruitResponseDTO fruitResponse1 = new FruitResponseDTO(1L, "Apple", 10, providerResponse);
+        FruitResponseDTO fruitResponse2 = new FruitResponseDTO(2L, "Banana", 5, providerResponse);
+
+        when(providerRepository.existsById(providerId)).thenReturn(true);
+        when(fruitRepository.findByProviderId(providerId)).thenReturn(fruits);
+        when(fruitMapper.toResponseDTO(fruit1)).thenReturn(fruitResponse1);
+        when(fruitMapper.toResponseDTO(fruit2)).thenReturn(fruitResponse2);
+
+        List<FruitResponseDTO> result = fruitService.getFruitsByProviderId(providerId);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).name()).isEqualTo("Apple");
+        assertThat(result.get(1).name()).isEqualTo("Banana");
+    }
+
+    @Test
+    void getFruitsByProviderId_WithNonExistentProvider_ThrowsResourceNotFoundException() {
+        Long providerId = 999L;
+
+        when(providerRepository.existsById(providerId)).thenReturn(false);
+
+        assertThatThrownBy(() -> fruitService.getFruitsByProviderId(providerId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Provider with id 999 not found");
+    }
+
+    @Test
+    void getFruitsByProviderId_WithExistingProviderButNoFruits_ReturnsEmptyList() {
+        Long providerId = 1L;
+
+        when(providerRepository.existsById(providerId)).thenReturn(true);
+        when(fruitRepository.findByProviderId(providerId)).thenReturn(List.of());
+
+        List<FruitResponseDTO> result = fruitService.getFruitsByProviderId(providerId);
+
+        assertThat(result).isEmpty();
     }
 }

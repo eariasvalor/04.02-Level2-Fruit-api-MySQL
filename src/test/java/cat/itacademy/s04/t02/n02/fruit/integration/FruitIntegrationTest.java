@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -29,7 +30,7 @@ class FruitIntegrationTest {
 
     @Test
     void createFruit_WithValidProvider_ReturnsCreatedFruit() throws Exception {
-                ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
+        ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
         String providerResponse = mockMvc.perform(post("/providers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(providerRequest)))
@@ -37,9 +38,9 @@ class FruitIntegrationTest {
 
         Long providerId = objectMapper.readTree(providerResponse).get("id").asLong();
 
-                FruitRequestDTO fruitRequest = new FruitRequestDTO("Apple", 10, providerId);
+        FruitRequestDTO fruitRequest = new FruitRequestDTO("Apple", 10, providerId);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(fruitRequest)))
                 .andExpect(status().isCreated())
@@ -53,10 +54,10 @@ class FruitIntegrationTest {
 
     @Test
     void createFruit_WithNonExistentProvider_Returns404NotFound() throws Exception {
-                Long nonExistentProviderId = 999L;
+        Long nonExistentProviderId = 999L;
         FruitRequestDTO request = new FruitRequestDTO("Apple", 10, nonExistentProviderId);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -65,7 +66,7 @@ class FruitIntegrationTest {
 
     @Test
     void createFruit_WithBlankName_Returns400BadRequest() throws Exception {
-                ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
+        ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
         String providerResponse = mockMvc.perform(post("/providers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(providerRequest)))
@@ -73,9 +74,9 @@ class FruitIntegrationTest {
 
         Long providerId = objectMapper.readTree(providerResponse).get("id").asLong();
 
-                FruitRequestDTO fruitRequest = new FruitRequestDTO("", 10, providerId);
+        FruitRequestDTO fruitRequest = new FruitRequestDTO("", 10, providerId);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(fruitRequest)))
                 .andExpect(status().isBadRequest());
@@ -83,7 +84,7 @@ class FruitIntegrationTest {
 
     @Test
     void createFruit_WithNegativeWeight_Returns400BadRequest() throws Exception {
-                ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
+        ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
         String providerResponse = mockMvc.perform(post("/providers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(providerRequest)))
@@ -91,9 +92,9 @@ class FruitIntegrationTest {
 
         Long providerId = objectMapper.readTree(providerResponse).get("id").asLong();
 
-                FruitRequestDTO fruitRequest = new FruitRequestDTO("Apple", -5, providerId);
+        FruitRequestDTO fruitRequest = new FruitRequestDTO("Apple", -5, providerId);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(fruitRequest)))
                 .andExpect(status().isBadRequest());
@@ -101,11 +102,70 @@ class FruitIntegrationTest {
 
     @Test
     void createFruit_WithNullProviderId_Returns400BadRequest() throws Exception {
-                FruitRequestDTO request = new FruitRequestDTO("Apple", 10, null);
+        FruitRequestDTO request = new FruitRequestDTO("Apple", 10, null);
 
-                mockMvc.perform(post("/fruits")
+        mockMvc.perform(post("/fruits")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getFruitsByProviderId_WithExistingProvider_ReturnsListOfFruits() throws Exception {
+        ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
+        String providerResponse = mockMvc.perform(post("/providers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(providerRequest)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long providerId = objectMapper.readTree(providerResponse).get("id").asLong();
+
+        FruitRequestDTO fruit1 = new FruitRequestDTO("Apple", 10, providerId);
+        FruitRequestDTO fruit2 = new FruitRequestDTO("Banana", 5, providerId);
+
+        mockMvc.perform(post("/fruits")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(fruit1)));
+
+        mockMvc.perform(post("/fruits")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(fruit2)));
+
+        mockMvc.perform(get("/fruits")
+                        .param("providerId", providerId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("Apple"))
+                .andExpect(jsonPath("$[1].name").value("Banana"))
+                .andExpect(jsonPath("$[0].provider.id").value(providerId))
+                .andExpect(jsonPath("$[1].provider.id").value(providerId));
+    }
+
+    @Test
+    void getFruitsByProviderId_WithNonExistentProvider_Returns404NotFound() throws Exception {
+        Long nonExistentProviderId = 999L;
+
+        mockMvc.perform(get("/fruits")
+                        .param("providerId", nonExistentProviderId.toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Provider with id 999 not found"));
+    }
+
+    @Test
+    void getFruitsByProviderId_WithExistingProviderButNoFruits_ReturnsEmptyArray() throws Exception {
+        ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
+        String providerResponse = mockMvc.perform(post("/providers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(providerRequest)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long providerId = objectMapper.readTree(providerResponse).get("id").asLong();
+
+        mockMvc.perform(get("/fruits")
+                        .param("providerId", providerId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
     }
 }
