@@ -90,4 +90,13 @@ public class FruitServiceImpl implements FruitService {
         Fruit updatedFruit = fruitRepository.save(fruit);
         return fruitMapper.toResponseDTO(updatedFruit);
     }
+
+    @Override
+    @Transactional
+    public void deleteFruit(Long id) {
+        Fruit fruit = fruitRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format(FRUIT_NOT_FOUND_MESSAGE, id)
+                ));
+        fruitRepository.delete(fruit);
+    }
 }

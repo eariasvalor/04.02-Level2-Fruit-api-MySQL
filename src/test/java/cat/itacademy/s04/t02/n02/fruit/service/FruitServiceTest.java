@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -263,5 +265,29 @@ class FruitServiceTest {
         assertThat(result.name()).isEqualTo("Updated Apple");
         assertThat(result.weightInKilos()).isEqualTo(15);
         assertThat(result.provider().id()).isEqualTo(1L);
+    }
+
+    @Test
+    void deleteFruit_WithValidId_DeletesSuccessfully() {
+                Long fruitId = 1L;
+        Provider provider = new Provider(1L, "Fruits Inc", "Spain");
+        Fruit fruit = new Fruit(fruitId, "Apple", 10, provider);
+
+        when(fruitRepository.findById(fruitId)).thenReturn(Optional.of(fruit));
+
+                fruitService.deleteFruit(fruitId);
+
+                verify(fruitRepository, times(1)).delete(fruit);
+    }
+
+    @Test
+    void deleteFruit_WithNonExistentId_ThrowsResourceNotFoundException() {
+                Long fruitId = 999L;
+
+        when(fruitRepository.findById(fruitId)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> fruitService.deleteFruit(fruitId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Fruit with id 999 not found");
     }
 }

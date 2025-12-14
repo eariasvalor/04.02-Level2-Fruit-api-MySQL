@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -399,6 +400,66 @@ class FruitIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteFruit_WithValidId_Returns204NoContent() throws Exception {
+                ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
+        String providerResponse = mockMvc.perform(post("/providers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(providerRequest)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long providerId = objectMapper.readTree(providerResponse).get("id").asLong();
+
+        FruitRequestDTO fruitRequest = new FruitRequestDTO("Apple", 10, providerId);
+        String fruitResponse = mockMvc.perform(post("/fruits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(fruitRequest)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long fruitId = objectMapper.readTree(fruitResponse).get("id").asLong();
+
+                mockMvc.perform(delete("/fruits/{id}", fruitId))
+                .andExpect(status().isNoContent());
+
+                mockMvc.perform(get("/fruits/{id}", fruitId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteFruit_WithNonExistentId_Returns404NotFound() throws Exception {
+                Long nonExistentId = 999L;
+
+                mockMvc.perform(delete("/fruits/{id}", nonExistentId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Fruit with id 999 not found"));
+    }
+
+    @Test
+    void deleteFruit_DoesNotAffectProvider() throws Exception {
+                ProviderRequestDTO providerRequest = new ProviderRequestDTO("Fruits Inc", "Spain");
+        String providerResponse = mockMvc.perform(post("/providers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(providerRequest)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long providerId = objectMapper.readTree(providerResponse).get("id").asLong();
+
+        FruitRequestDTO fruitRequest = new FruitRequestDTO("Apple", 10, providerId);
+        String fruitResponse = mockMvc.perform(post("/fruits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(fruitRequest)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long fruitId = objectMapper.readTree(fruitResponse).get("id").asLong();
+
+                mockMvc.perform(delete("/fruits/{id}", fruitId))
+                .andExpect(status().isNoContent());
+
+                mockMvc.perform(get("/providers/{id}", providerId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Fruits Inc"));
     }
 
 }
