@@ -4,6 +4,7 @@ import cat.itacademy.s04.t02.n02.fruit.dto.FruitRequestDTO;
 import cat.itacademy.s04.t02.n02.fruit.dto.FruitResponseDTO;
 import cat.itacademy.s04.t02.n02.fruit.dto.ProviderResponseDTO;
 import cat.itacademy.s04.t02.n02.fruit.exception.ResourceNotFoundException;
+import cat.itacademy.s04.t02.n02.fruit.repository.FruitRepository;
 import cat.itacademy.s04.t02.n02.fruit.service.FruitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -16,9 +17,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(FruitController.class)
@@ -204,4 +208,62 @@ class FruitControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Fruit with id 999 not found"));
     }
+
+    @Test
+    void updateFruit_WithValidData_Returns2000k() throws Exception {
+        Long fruitId = 1L;
+        FruitRequestDTO request = new FruitRequestDTO("Updated Apple", 15, 2L);
+        ProviderResponseDTO provider = new ProviderResponseDTO(2L, "Veggies Ltd", "France");
+        FruitResponseDTO response = new FruitResponseDTO(fruitId, "Updated Apple", 15, provider);
+
+        when(fruitService.updateFruit(eq(fruitId), any(FruitRequestDTO.class)))
+                .thenReturn(response);
+
+        mockMvc.perform(put("/fruits/{id}", fruitId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(fruitId))
+                .andExpect(jsonPath("$.name").value("Updated Apple"))
+                .andExpect(jsonPath("$.weightInKilos").value(15))
+                .andExpect(jsonPath("$.provider.id").value(2));
+    }
+
+    @Test
+    void updateFruit_WithNonExistingId_Returns404NotFound() throws Exception {
+        Long fruitId = 999L;
+        FruitRequestDTO request = new FruitRequestDTO("Apple", 10, 1L);
+
+        when(fruitService.updateFruit(eq(fruitId), any(FruitRequestDTO.class)))
+                .thenThrow(new ResourceNotFoundException("Fruit with id 999 not found"));
+
+        mockMvc.perform(put("/fruits/{id}", fruitId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Fruit with id 999 not found"));
+    }
+
+    @Test
+    void updateFruit_WithBlankName_Returns400BadRequest() throws Exception {
+        Long fruitId = 1L;
+        FruitRequestDTO request = new FruitRequestDTO("", 10, 1L);
+
+        mockMvc.perform(put("/fruits/{id}", fruitId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateFruit_WithNegativeWeight_Returns400BadRequest() throws Exception {
+        Long fruitId = 1L;
+        FruitRequestDTO request = new FruitRequestDTO("Apple", -5, 1L);
+
+        mockMvc.perform(put("/fruits/{id}", fruitId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
 }

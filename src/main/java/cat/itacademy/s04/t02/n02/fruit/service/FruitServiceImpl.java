@@ -71,4 +71,23 @@ public class FruitServiceImpl implements FruitService {
                 ));
         return fruitMapper.toResponseDTO(fruit);
     }
+
+    @Override
+    @Transactional
+    public FruitResponseDTO updateFruit(Long id, FruitRequestDTO request) {
+        Fruit fruit = fruitRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format(FRUIT_NOT_FOUND_MESSAGE, id)
+                ));
+
+        Provider provider = providerRepository.findById(request.providerId())
+                .orElseThrow(() -> new ResourceNotFoundException(String.format(PROVIDER_NOT_FOUND_MESSAGE, request.providerId())
+                ));
+
+        fruit.setName(request.name());
+        fruit.setWeightInKilos(request.weightInKilos());
+        fruit.setProvider(provider);
+
+        Fruit updatedFruit = fruitRepository.save(fruit);
+        return fruitMapper.toResponseDTO(updatedFruit);
+    }
 }

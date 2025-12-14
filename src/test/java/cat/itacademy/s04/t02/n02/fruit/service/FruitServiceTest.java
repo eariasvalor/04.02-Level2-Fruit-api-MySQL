@@ -124,16 +124,16 @@ class FruitServiceTest {
 
     @Test
     void getAllFruits_WhenNoFruits_ReturnsEmptyList() {
-                when(fruitRepository.findAll()).thenReturn(List.of());
+        when(fruitRepository.findAll()).thenReturn(List.of());
 
-                List<FruitResponseDTO> result = fruitService.getAllFruits();
+        List<FruitResponseDTO> result = fruitService.getAllFruits();
 
-                assertThat(result).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
     void getAllFruits_WhenFruitsExist_ReturnsListOfFruits() {
-                Provider provider = new Provider(1L, "Fruits Inc", "Spain");
+        Provider provider = new Provider(1L, "Fruits Inc", "Spain");
         Fruit fruit1 = new Fruit(1L, "Apple", 10, provider);
         Fruit fruit2 = new Fruit(2L, "Banana", 5, provider);
         List<Fruit> fruits = List.of(fruit1, fruit2);
@@ -146,16 +146,16 @@ class FruitServiceTest {
         when(fruitMapper.toResponseDTO(fruit1)).thenReturn(fruitResponse1);
         when(fruitMapper.toResponseDTO(fruit2)).thenReturn(fruitResponse2);
 
-                List<FruitResponseDTO> result = fruitService.getAllFruits();
+        List<FruitResponseDTO> result = fruitService.getAllFruits();
 
-                assertThat(result).hasSize(2);
+        assertThat(result).hasSize(2);
         assertThat(result.get(0).name()).isEqualTo("Apple");
         assertThat(result.get(1).name()).isEqualTo("Banana");
     }
 
     @Test
     void getFruitById_WithExistingId_ReturnsFruit() {
-                Long fruitId = 1L;
+        Long fruitId = 1L;
         Provider provider = new Provider(1L, "Fruits Inc", "Spain");
         Fruit fruit = new Fruit(fruitId, "Apple", 10, provider);
 
@@ -165,9 +165,9 @@ class FruitServiceTest {
         when(fruitRepository.findById(fruitId)).thenReturn(Optional.of(fruit));
         when(fruitMapper.toResponseDTO(fruit)).thenReturn(expectedResponse);
 
-                FruitResponseDTO result = fruitService.getFruitById(fruitId);
+        FruitResponseDTO result = fruitService.getFruitById(fruitId);
 
-                assertThat(result).isNotNull();
+        assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(fruitId);
         assertThat(result.name()).isEqualTo("Apple");
         assertThat(result.weightInKilos()).isEqualTo(10);
@@ -176,12 +176,92 @@ class FruitServiceTest {
 
     @Test
     void getFruitById_WithNonExistentId_ThrowsResourceNotFoundException() {
-                Long fruitId = 999L;
+        Long fruitId = 999L;
 
         when(fruitRepository.findById(fruitId)).thenReturn(Optional.empty());
 
-                assertThatThrownBy(() -> fruitService.getFruitById(fruitId))
+        assertThatThrownBy(() -> fruitService.getFruitById(fruitId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Fruit with id 999 not found");
+    }
+
+    @Test
+    void updateFruit_WithValidData_ReturnsUpdatedFruit() {
+        Long fruitId = 1L;
+        FruitRequestDTO request = new FruitRequestDTO("Updated Apple", 15, 2L);
+
+        Provider oldProvider = new Provider(1L, "Fruits Inc", "Spain");
+        Provider newProvider = new Provider(2L, "Veggies Ltd", "France");
+
+        Fruit existingFruit = new Fruit(fruitId, "Apple", 10, oldProvider);
+        Fruit updatedFruit = new Fruit(fruitId, "Updated Apple", 15, newProvider);
+
+        ProviderResponseDTO providerResponse = new ProviderResponseDTO(2L, "Veggies Ltd", "France");
+        FruitResponseDTO expectedResponse = new FruitResponseDTO(fruitId, "Updated Apple", 15, providerResponse);
+
+        when(fruitRepository.findById(fruitId)).thenReturn(Optional.of(existingFruit));
+        when(providerRepository.findById(2L)).thenReturn(Optional.of(newProvider));
+        when(fruitRepository.save(any(Fruit.class))).thenReturn(updatedFruit);
+        when(fruitMapper.toResponseDTO(updatedFruit)).thenReturn(expectedResponse);
+
+        FruitResponseDTO result = fruitService.updateFruit(fruitId, request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo(fruitId);
+        assertThat(result.name()).isEqualTo("Updated Apple");
+        assertThat(result.weightInKilos()).isEqualTo(15);
+        assertThat(result.provider().id()).isEqualTo(2L);
+    }
+
+    @Test
+    void updateFruit_WithNonExistentFruitId_ThrowsResourceNotFoundException() {
+        Long fruitId = 999L;
+        FruitRequestDTO request = new FruitRequestDTO("Apple", 10, 1L);
+
+        when(fruitRepository.findById(fruitId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> fruitService.updateFruit(fruitId, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Fruit with id 999 not found");
+    }
+
+    @Test
+    void updateFruit_WithNonExistentProviderId_ThrowsResourceNotFoundException() {
+        Long fruitId = 1L;
+        FruitRequestDTO request = new FruitRequestDTO("Apple", 10, 999L);
+
+        Provider provider = new Provider(1L, "Fruits Inc", "Spain");
+        Fruit existingFruit = new Fruit(fruitId, "Apple", 10, provider);
+
+        when(fruitRepository.findById(fruitId)).thenReturn(Optional.of(existingFruit));
+        when(providerRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> fruitService.updateFruit(fruitId, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Provider with id 999 not found");
+    }
+
+    @Test
+    void updateFruit_WithSameProvider_UpdatesSuccessfully() {
+        Long fruitId = 1L;
+        FruitRequestDTO request = new FruitRequestDTO("Updated Apple", 15, 1L);
+
+        Provider provider = new Provider(1L, "Fruits Inc", "Spain");
+        Fruit existingFruit = new Fruit(fruitId, "Apple", 10, provider);
+        Fruit updatedFruit = new Fruit(fruitId, "Updated Apple", 15, provider);
+
+        ProviderResponseDTO providerResponse = new ProviderResponseDTO(1L, "Fruits Inc", "Spain");
+        FruitResponseDTO expectedResponse = new FruitResponseDTO(fruitId, "Updated Apple", 15, providerResponse);
+
+        when(fruitRepository.findById(fruitId)).thenReturn(Optional.of(existingFruit));
+        when(providerRepository.findById(1L)).thenReturn(Optional.of(provider));
+        when(fruitRepository.save(any(Fruit.class))).thenReturn(updatedFruit);
+        when(fruitMapper.toResponseDTO(updatedFruit)).thenReturn(expectedResponse);
+
+
+        FruitResponseDTO result = fruitService.updateFruit(fruitId, request);
+        assertThat(result.name()).isEqualTo("Updated Apple");
+        assertThat(result.weightInKilos()).isEqualTo(15);
+        assertThat(result.provider().id()).isEqualTo(1L);
     }
 }
