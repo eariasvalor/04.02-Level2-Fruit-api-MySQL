@@ -55,6 +55,7 @@ class ProviderControllerTest {
                 .andExpect(jsonPath("$.name").value("Fruits Inc"))
                 .andExpect(jsonPath("$.country").value("Spain"));
     }
+
     @Test
     void createProvider_WithBlankName_Returns400BadRequest() throws Exception {
         ProviderRequestDTO request = new ProviderRequestDTO("", "Spain");
@@ -77,9 +78,9 @@ class ProviderControllerTest {
 
     @Test
     void getAllProviders_ReturnsEmptyList() throws Exception {
-                when(providerService.getAllProviders()).thenReturn(List.of());
+        when(providerService.getAllProviders()).thenReturn(List.of());
 
-                mockMvc.perform(get("/providers"))
+        mockMvc.perform(get("/providers"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
@@ -87,14 +88,14 @@ class ProviderControllerTest {
 
     @Test
     void getAllProviders_ReturnsListOfProviders() throws Exception {
-                List<ProviderResponseDTO> providers = List.of(
+        List<ProviderResponseDTO> providers = List.of(
                 new ProviderResponseDTO(1L, "Fruits Inc", "Spain"),
                 new ProviderResponseDTO(2L, "Veggies Ltd", "France")
         );
 
         when(providerService.getAllProviders()).thenReturn(providers);
 
-                mockMvc.perform(get("/providers"))
+        mockMvc.perform(get("/providers"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -108,14 +109,14 @@ class ProviderControllerTest {
 
     @Test
     void updateProvider_WithValidData_Returns200Ok() throws Exception {
-                Long providerId = 1L;
+        Long providerId = 1L;
         ProviderRequestDTO request = new ProviderRequestDTO("Updated Fruits Inc", "Italy");
         ProviderResponseDTO response = new ProviderResponseDTO(providerId, "Updated Fruits Inc", "Italy");
 
         when(providerService.updateProvider(eq(providerId), any(ProviderRequestDTO.class)))
                 .thenReturn(response);
 
-                mockMvc.perform(put("/providers/{id}", providerId)
+        mockMvc.perform(put("/providers/{id}", providerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -126,13 +127,13 @@ class ProviderControllerTest {
 
     @Test
     void updateProvider_WithNonExistentId_Returns404NotFound() throws Exception {
-                Long providerId = 999L;
+        Long providerId = 999L;
         ProviderRequestDTO request = new ProviderRequestDTO("Fruits Inc", "Spain");
 
         when(providerService.updateProvider(eq(providerId), any(ProviderRequestDTO.class)))
                 .thenThrow(new ResourceNotFoundException("Provider with id " + providerId + " not found"));
 
-                mockMvc.perform(put("/providers/{id}", providerId)
+        mockMvc.perform(put("/providers/{id}", providerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -141,10 +142,10 @@ class ProviderControllerTest {
 
     @Test
     void updateProvider_WithBlankName_Returns400BadRequest() throws Exception {
-                Long providerId = 1L;
+        Long providerId = 1L;
         ProviderRequestDTO request = new ProviderRequestDTO("", "Spain");
 
-                mockMvc.perform(put("/providers/{id}", providerId)
+        mockMvc.perform(put("/providers/{id}", providerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -152,13 +153,13 @@ class ProviderControllerTest {
 
     @Test
     void updateProvider_WithDuplicateName_Returns409Conflict() throws Exception {
-                Long providerId = 1L;
+        Long providerId = 1L;
         ProviderRequestDTO request = new ProviderRequestDTO("Existing Provider", "Spain");
 
         when(providerService.updateProvider(eq(providerId), any(ProviderRequestDTO.class)))
                 .thenThrow(new DuplicateResourceException("Provider with name 'Existing Provider' already exists"));
 
-                mockMvc.perform(put("/providers/{id}", providerId)
+        mockMvc.perform(put("/providers/{id}", providerId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -167,34 +168,34 @@ class ProviderControllerTest {
 
     @Test
     void deleteProvider_WithValidId_Returns204NoContent() throws Exception {
-                Long providerId = 1L;
+        Long providerId = 1L;
 
         doNothing().when(providerService).deleteProvider(providerId);
 
-                mockMvc.perform(delete("/providers/{id}", providerId))
+        mockMvc.perform(delete("/providers/{id}", providerId))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void deleteProvider_WithNonExistentId_Returns404NotFound() throws Exception {
-                Long providerId = 999L;
+        Long providerId = 999L;
 
         doThrow(new ResourceNotFoundException("Provider with id " + providerId + " not found"))
                 .when(providerService).deleteProvider(providerId);
 
-                mockMvc.perform(delete("/providers/{id}", providerId))
+        mockMvc.perform(delete("/providers/{id}", providerId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Provider with id 999 not found"));
     }
 
     @Test
     void deleteProvider_WithAssociatedFruits_Returns409Conflict() throws Exception {
-                Long providerId = 1L;
+        Long providerId = 1L;
 
         doThrow(new ResourceConflictException("Cannot delete provider with id " + providerId + " because it has associated fruits"))
                 .when(providerService).deleteProvider(providerId);
 
-                mockMvc.perform(delete("/providers/{id}", providerId))
+        mockMvc.perform(delete("/providers/{id}", providerId))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Cannot delete provider with id 1 because it has associated fruits"));
     }
