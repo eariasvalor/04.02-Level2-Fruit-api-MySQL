@@ -51,4 +51,15 @@ public class FruitServiceImpl implements FruitService {
                 .map(fruitMapper::toResponseDTO)
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FruitResponseDTO> getAllFruits() {
+        return fruitRepository.findAll()
+                .stream()
+                .map(fruitMapper::toResponseDTO)
+                .toList();
+    }
+
+
 }

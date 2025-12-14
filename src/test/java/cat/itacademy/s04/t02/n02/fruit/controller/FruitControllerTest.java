@@ -143,4 +143,36 @@ class FruitControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Provider with id 999 not found"));
     }
+
+    @Test
+    void getAllFruits_ReturnsEmptyList() throws Exception {
+                when(fruitService.getAllFruits()).thenReturn(List.of());
+
+                mockMvc.perform(get("/fruits/all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getAllFruits_ReturnsListOfFruits() throws Exception {
+                ProviderResponseDTO provider = new ProviderResponseDTO(1L, "Fruits Inc", "Spain");
+        List<FruitResponseDTO> fruits = List.of(
+                new FruitResponseDTO(1L, "Apple", 10, provider),
+                new FruitResponseDTO(2L, "Banana", 5, provider)
+        );
+
+        when(fruitService.getAllFruits()).thenReturn(fruits);
+
+                mockMvc.perform(get("/fruits/all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("Apple"))
+                .andExpect(jsonPath("$[0].weightInKilos").value(10))
+                .andExpect(jsonPath("$[0].provider.name").value("Fruits Inc"))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].name").value("Banana"));
+    }
 }

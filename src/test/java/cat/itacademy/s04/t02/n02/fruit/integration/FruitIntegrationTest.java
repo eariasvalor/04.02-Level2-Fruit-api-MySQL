@@ -168,4 +168,58 @@ class FruitIntegrationTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
     }
+
+    @Test
+    void getAllFruits_WhenEmpty_ReturnsEmptyArray() throws Exception {
+                mockMvc.perform(get("/fruits/all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getAllFruits_WhenFruitsExist_ReturnsAllFruits() throws Exception {
+                ProviderRequestDTO provider1 = new ProviderRequestDTO("Fruits Inc", "Spain");
+        ProviderRequestDTO provider2 = new ProviderRequestDTO("Veggies Ltd", "France");
+
+        String providerResponse1 = mockMvc.perform(post("/providers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provider1)))
+                .andReturn().getResponse().getContentAsString();
+
+        String providerResponse2 = mockMvc.perform(post("/providers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provider2)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long providerId1 = objectMapper.readTree(providerResponse1).get("id").asLong();
+        Long providerId2 = objectMapper.readTree(providerResponse2).get("id").asLong();
+
+                FruitRequestDTO fruit1 = new FruitRequestDTO("Apple", 10, providerId1);
+        FruitRequestDTO fruit2 = new FruitRequestDTO("Banana", 5, providerId1);
+        FruitRequestDTO fruit3 = new FruitRequestDTO("Carrot", 8, providerId2);
+
+        mockMvc.perform(post("/fruits")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(fruit1)));
+
+        mockMvc.perform(post("/fruits")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(fruit2)));
+
+        mockMvc.perform(post("/fruits")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(fruit3)));
+
+                mockMvc.perform(get("/fruits/all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].name").value("Apple"))
+                .andExpect(jsonPath("$[1].name").value("Banana"))
+                .andExpect(jsonPath("$[2].name").value("Carrot"))
+                .andExpect(jsonPath("$[0].provider.name").value("Fruits Inc"))
+                .andExpect(jsonPath("$[2].provider.name").value("Veggies Ltd"));
+    }
+
 }

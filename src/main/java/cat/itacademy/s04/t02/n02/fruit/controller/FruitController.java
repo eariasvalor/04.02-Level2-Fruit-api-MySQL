@@ -30,5 +30,11 @@ public class FruitController {
         return ResponseEntity.ok(fruits);
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<List<FruitResponseDTO>> getAllFruits() {
+        List<FruitResponseDTO> fruits = fruitService.getAllFruits();
+        return ResponseEntity.ok(fruits);
+    }
+
 
 }

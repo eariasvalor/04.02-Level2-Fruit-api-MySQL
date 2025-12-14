@@ -121,4 +121,35 @@ class FruitServiceTest {
 
         assertThat(result).isEmpty();
     }
+
+    @Test
+    void getAllFruits_WhenNoFruits_ReturnsEmptyList() {
+                when(fruitRepository.findAll()).thenReturn(List.of());
+
+                List<FruitResponseDTO> result = fruitService.getAllFruits();
+
+                assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getAllFruits_WhenFruitsExist_ReturnsListOfFruits() {
+                Provider provider = new Provider(1L, "Fruits Inc", "Spain");
+        Fruit fruit1 = new Fruit(1L, "Apple", 10, provider);
+        Fruit fruit2 = new Fruit(2L, "Banana", 5, provider);
+        List<Fruit> fruits = List.of(fruit1, fruit2);
+
+        ProviderResponseDTO providerResponse = new ProviderResponseDTO(1L, "Fruits Inc", "Spain");
+        FruitResponseDTO fruitResponse1 = new FruitResponseDTO(1L, "Apple", 10, providerResponse);
+        FruitResponseDTO fruitResponse2 = new FruitResponseDTO(2L, "Banana", 5, providerResponse);
+
+        when(fruitRepository.findAll()).thenReturn(fruits);
+        when(fruitMapper.toResponseDTO(fruit1)).thenReturn(fruitResponse1);
+        when(fruitMapper.toResponseDTO(fruit2)).thenReturn(fruitResponse2);
+
+                List<FruitResponseDTO> result = fruitService.getAllFruits();
+
+                assertThat(result).hasSize(2);
+        assertThat(result.get(0).name()).isEqualTo("Apple");
+        assertThat(result.get(1).name()).isEqualTo("Banana");
+    }
 }
