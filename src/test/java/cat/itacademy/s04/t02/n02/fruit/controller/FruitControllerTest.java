@@ -152,7 +152,7 @@ class FruitControllerTest {
     void getAllFruits_ReturnsEmptyList() throws Exception {
                 when(fruitService.getAllFruits()).thenReturn(List.of());
 
-                mockMvc.perform(get("/fruits/all"))
+                mockMvc.perform(get("/fruits"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
@@ -168,7 +168,7 @@ class FruitControllerTest {
 
         when(fruitService.getAllFruits()).thenReturn(fruits);
 
-                mockMvc.perform(get("/fruits/all"))
+                mockMvc.perform(get("/fruits"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))

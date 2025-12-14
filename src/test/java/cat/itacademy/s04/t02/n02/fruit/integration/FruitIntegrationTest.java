@@ -174,7 +174,7 @@ class FruitIntegrationTest {
 
     @Test
     void getAllFruits_WhenEmpty_ReturnsEmptyArray() throws Exception {
-        mockMvc.perform(get("/fruits/all"))
+        mockMvc.perform(get("/fruits"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
@@ -214,7 +214,7 @@ class FruitIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(fruit3)));
 
-        mockMvc.perform(get("/fruits/all"))
+        mockMvc.perform(get("/fruits"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(3))

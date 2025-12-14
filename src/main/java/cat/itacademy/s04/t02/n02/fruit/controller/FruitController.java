@@ -25,14 +25,13 @@ public class FruitController {
     }
 
     @GetMapping
-    public ResponseEntity<List<FruitResponseDTO>> getFruitsByProviderId(@RequestParam Long providerId) {
-        List<FruitResponseDTO> fruits = fruitService.getFruitsByProviderId(providerId);
-        return ResponseEntity.ok(fruits);
-    }
+    public ResponseEntity<List<FruitResponseDTO>> getFruits(
+            @RequestParam(required = false) Long providerId) {
 
-    @GetMapping("/all")
-    public ResponseEntity<List<FruitResponseDTO>> getAllFruits() {
-        List<FruitResponseDTO> fruits = fruitService.getAllFruits();
+        List<FruitResponseDTO> fruits = (providerId != null)
+                ? fruitService.getFruitsByProviderId(providerId)
+                : fruitService.getAllFruits();
+
         return ResponseEntity.ok(fruits);
     }
 
